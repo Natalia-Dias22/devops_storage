@@ -9,6 +9,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   SERVICE_NAME: hello-4ch-api
   REGION: us-central1
+  ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
 
 jobs:
   deploy:
@@ -26,20 +27,20 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
     
+    - name: Configure Docker to use Artifact Registry
+      run: |
+        gcloud auth configure-docker $ARTIFACT_REGISTRY
+    
     - name: Build and push Docker image
       run: |
         gcloud builds submit \
-          --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
-          --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:latest \
-          --async
-    
-    - name: Wait for build to complete
-      run: sleep 120
+          --tag $ARTIFACT_REGISTRY/$PROJECT_ID/hello-4ch/$SERVICE_NAME:$GITHUB_SHA \
+          --tag $ARTIFACT_REGISTRY/$PROJECT_ID/hello-4ch/$SERVICE_NAME:latest
     
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy $SERVICE_NAME \
-          --image gcr.io/$PROJECT_ID/$SERVICE_NAME:latest \
+          --image $ARTIFACT_REGISTRY/$PROJECT_ID/hello-4ch/$SERVICE_NAME:latest \
           --region $REGION \
           --platform managed \
           --allow-unauthenticated
